@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import './FacultyManager.css'
 
-const API_URL = 'http://localhost:8003'
+// Dynamically determine API URL based on current hostname
+const API_URL = `http://${window.location.hostname}:8003`
 
 export default function FacultyManager() {
   const [faculty, setFaculty] = useState([])
