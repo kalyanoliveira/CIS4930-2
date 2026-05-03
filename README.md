@@ -94,16 +94,104 @@ curl -X POST http://localhost:8003/faculty \
 curl -X DELETE http://localhost:8003/faculty/1
 ```
 
-## CI/CD Pipeline
+## CI/CD Pipeline (Complete)
 
-The Jenkins pipeline includes:
-1. **Build**: Docker compose build
-2. **Verify**: Health check via `curl http://localhost:8003/health`
+The Jenkins pipeline automates the entire deployment process with four stages:
+
+### Pipeline Stages
+
+1. **Checkout** (Kalyan)
+   - Clones latest code from GitHub repository
+   - Command: `checkout scm`
+   - Ensures pipeline builds from most recent commit
+
+2. **Build** (Caio)
+   - Builds Docker images for frontend and backend
+   - Command: `docker compose build`
+   - Uses layer caching for faster builds
+   - Timeout: 15 minutes
+
+3. **Verify** (Sofia)
+   - Starts backend container and validates health
+   - Command: `docker compose up -d --wait backend`
+   - Checks `/health` endpoint using Python urllib
+   - Timeout: 3 minutes with automatic retries
+
+4. **Deploy** (Kalyan)
+   - Deploys full application stack
+   - Commands: `docker compose down` then `docker compose up -d --wait`
+   - Waits for all services to be healthy
+   - Timeout: 3 minutes
+
+### Automated Deployment
+
+- **GitHub webhook** triggers pipeline on every push to main
+- **Webhook URL**: `http://3.137.158.102:8080/github-webhook/`
+- No manual intervention required
+- Automatic cleanup on failure
+
+### Health Check Integration
+
+```yaml
+backend:
+  healthcheck:
+    test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    start_period: 40s
+```
+
+- Uses Python's built-in urllib (no curl dependency needed)
+- 40-second grace period for pip dependencies to install
+- Checks endpoint every 10 seconds
+- Frontend waits for backend health before starting
 
 ## Technology Stack
 
-- **Backend**: FastAPI, SQLAlchemy, SQLite, Uvicorn
-- **Frontend**: React 18, Vite, faculty management dashboard UI
-- **Database**: SQLite with SQLAlchemy ORM
-- **Containerization**: Docker & Docker Compose
-- **CI/CD**: Jenkins with health check verification
+**Backend:**
+- **FastAPI** - Modern Python web framework
+- **SQLAlchemy** - ORM for database operations
+- **Pydantic** - Data validation
+- **Uvicorn** - ASGI server
+- **SQLite** - Lightweight database
+
+**Frontend:**
+- **React 18** - Component-based UI library
+- **Vite** - Fast build tool
+- **Tailwind CSS** - Utility-first styling
+- **PostCSS & Autoprefixer** - CSS processing
+
+**Infrastructure:**
+- **Docker & Docker Compose** - Containerization
+- **Jenkins** - CI/CD automation
+- **Nginx** - Frontend web server
+- **AWS EC2** - Cloud hosting
+- **GitHub** - Version control
+
+## Production Deployment
+
+**Live Application:** http://3.137.158.102
+
+**Access Points:**
+- **Frontend**: http://3.137.158.102 (port 80)
+- **Backend API**: http://3.137.158.102:8003
+- **Jenkins Dashboard**: http://3.137.158.102:8080
+
+## Team Members
+
+- **Caio** - Infrastructure & Containerization
+  - EC2 setup, Docker installation, Dockerfile creation
+  - Jenkins installation and configuration
+  - Build stage implementation
+
+- **Sofia** - Application Development & Verification
+  - FastAPI backend development
+  - React frontend with CRUD functionality
+  - Verify stage with health checks
+
+- **Kalyan** - CI/CD Pipeline & Documentation
+  - Checkout and Deploy stage implementation
+  - docker-compose.yml orchestration
+  - GitHub webhook configuration
+  - Project documentation
